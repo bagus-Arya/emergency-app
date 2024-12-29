@@ -3,8 +3,10 @@ import {
   StyleSheet, 
   View, 
   Image,
+  Text,
   Linking, 
   Alert, 
+  Animated,
   Dimensions,
   TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
@@ -29,6 +31,7 @@ export default function Home() {
   const [source, setSource] = useState(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const rotateAnim = useRef(new Animated.Value(0)).current;
 
   // Sample data for the image map simulation
   const imageMapData: ListItem[] = [
@@ -36,6 +39,16 @@ export default function Home() {
     { id: '2', title: 'Location 2', description: 'Description for Location 2' },
     { id: '3', title: 'Location 3', description: 'Description for Location 3' },
   ];
+
+  // Interpolate the rotation value
+  const rotateInterpolate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const animatedStyle = {
+    transform: [{ rotate: rotateInterpolate }],
+  };
 
   useEffect(() => {
     (async () => {
@@ -85,11 +98,75 @@ export default function Home() {
             end={{ x: 1, y: 1 }}
             style={styles.gradient}
           >
-            <View style={styles.welcomeHeader}>
+          <View style={styles.welcomeHeader}>
+            <View>
               <ThemedText style={styles.headerText} type="subtitle">Hi, heo</ThemedText>
-              <TouchableOpacity style={styles.logoutButton}>
-                <MaterialIcons name='logout' size={30} color="#fff" />
-              </TouchableOpacity>
+              <ThemedText style={styles.headerText} type="kicker">Kelompok nelayan Wisnu Rejeki</ThemedText>
+            </View>
+            <TouchableOpacity style={styles.logoutButton}>
+              <MaterialIcons name='logout' size={30} color="#fff" />
+            </TouchableOpacity>
+          </View>
+              <View style={styles.weatherContainerRoot}>   
+                <LinearGradient
+                  colors={['#38b6ff', '#1E90FF']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.gradient}
+                >
+              <View style={styles.rowReload}>
+                <Text style={styles.condition}>
+                  20 des 2024
+                </Text> 
+                <TouchableOpacity>
+                  <Animated.View style={animatedStyle}>
+                    <MaterialIcons name='loop' size={20} color="#fff" />
+                  </Animated.View>
+                </TouchableOpacity>
+              </View>
+  
+              <View style={styles.weatherContainer}>  
+                {/* Weather Details */}
+                <View style={styles.weatherRow}>
+                  <View style={styles.weatherDetailContainer}>
+                    <Image 
+                      source={require('@/assets/icon/Raining.png')} 
+                      style={styles.iconSmall} 
+                      resizeMode="contain" 
+                    />
+                    <ThemedText style={styles.weatherText}>Hujan</ThemedText>
+                    <ThemedText style={styles.weatherDetail}>20 °C</ThemedText>
+                  </View>
+                  <View style={styles.weatherDetailContainer}>
+                    <Image 
+                      source={require('@/assets/icon/angin-icon.png')} 
+                      style={styles.iconSmall} 
+                      resizeMode="contain" 
+                    />
+                    <ThemedText style={styles.weatherText}>Kencang</ThemedText>
+                    <ThemedText style={styles.weatherDetail}>50 km/h</ThemedText>
+                  </View>
+                  <View style={styles.weatherDetailContainer}>
+                    <Image 
+                      source={require('@/assets/icon/kelembaban-icon.png')} 
+                      style={styles.iconSmall} 
+                      resizeMode="contain" 
+                    />
+                    <ThemedText style={styles.weatherText}>Lembab</ThemedText>
+                    <ThemedText style={styles.weatherDetail}>30 %</ThemedText>
+                  </View>
+                  <View style={styles.weatherDetailContainer}>
+                    <Image 
+                      source={require('@/assets/icon/tekananudara-icon.png')} 
+                      style={styles.iconSmall} 
+                      resizeMode="contain" 
+                    />
+                    <ThemedText style={styles.weatherText}>Sedang</ThemedText>
+                    <ThemedText style={styles.weatherDetail}>500 mBar</ThemedText>
+                  </View>
+                </View>
+                </View>
+              </LinearGradient>
             </View>
           </LinearGradient>
         </ThemedView>
@@ -116,7 +193,7 @@ export default function Home() {
           style={styles.floatingButton} 
           onPress={sendData}
         >
-          <MaterialIcons name="warning" size={24} color="#fff" />
+          <MaterialIcons name="warning" size={35} color="#fff" />
         </TouchableOpacity>
       </ThemedView>
     </GestureHandlerRootView>
@@ -144,8 +221,6 @@ const styles = StyleSheet.create({
   },
   headerText: {
     color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
   },
   logoutButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -179,13 +254,63 @@ const styles = StyleSheet.create({
   floatingButton : {
     position: 'absolute',
     bottom: height * 0.05, 
-    right: width * 0.05, 
+    right: width * 0.09, 
     backgroundColor: '#ff0000',
-    width: width * 0.15, 
-    height: width * 0.15, 
+    width: width * 0.18, 
+    height: width * 0.18, 
     borderRadius: (width * 0.15) / 2, 
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
+  },
+  iconSmall:{
+    width: 25,
+    height: 25,
+    marginBottom: 10,
+  },
+  weatherRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 20,
+  },
+  reloadRow:{
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  weatherContainerRoot: {
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginTop: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  weatherContainer:{
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  weatherDetailContainer: {
+    alignItems: 'center',
+  },
+  weatherDetail: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  weatherText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  condition: {
+    color: '#FFFFFF',
+    fontSize: 20,
+  },
+  rowReload: {
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
 });
