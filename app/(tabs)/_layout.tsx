@@ -35,7 +35,7 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'paper-plane-sharp' : 'paper-plane-outline'} color={color} size={24} />
+            <Ionicons name={focused ? 'person-sharp' : 'person-outline'} color={color} size={24} />
           ),
         }}
       />
