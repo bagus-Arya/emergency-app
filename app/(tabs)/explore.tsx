@@ -17,6 +17,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { User, logout } from '@/services/apiAuth';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,12 +30,11 @@ export default function Home() {
     description: string;
   }
 
-  const mapRef = useRef(null);
   const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState(null);
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [user, setUser ] = useState<User | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const rotateAnim = useRef(new Animated.Value(0)).current;
+  const router = useRouter();
 
   const emergencyContacts: ListItem[] = [
     { id: '1', title: 'Emergency Services', description: 'Call 112' },
@@ -47,7 +49,6 @@ export default function Home() {
     { id: '10', title: 'Ambulance', description: 'Call 118' },
   ];
 
-  // Interpolate the rotation value
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
@@ -58,15 +59,40 @@ export default function Home() {
   };
 
   const backgroundColor = useThemeColor({}, 'background');
+  
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('userData');
+        if (userData) {
+          setUser (JSON.parse(userData));
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
 
-  const handleSOSPress = () => {
-    if (location) {
-      const lat = location.coords.latitude;
-      const lng = location.coords.longitude;
-      const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-      Linking.openURL(mapUrl).catch(err => console.error("An error occurred", err));
-    } else {
-      console.log("Location not available");
+    loadUserData();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.clear();
+      await logout();
+      
+      Alert.alert("Hore", "Kamu berhasil Keluar.", [
+        {
+          text: "OK",
+          onPress: () => {
+            router.replace('/login');
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Logout Failed", "An error occurred while logging out.");
     }
   };
 
@@ -82,10 +108,10 @@ export default function Home() {
           >
           <View style={styles.welcomeHeader}>
             <View>
-              <ThemedText style={styles.headerText} type="subtitle">Hi, heo</ThemedText>
-              <ThemedText style={styles.headerText} type="kicker">Kelompok nelayan Wisnu Rejeki</ThemedText>
+              <ThemedText style={styles.headerText} type="subtitle">Hi, {user ? user.name : 'Guest'}</ThemedText>
+              <ThemedText style={styles.headerText} type="kicker">{user ? user.email : 'Please log in'}</ThemedText>
             </View>
-            <TouchableOpacity style={styles.logoutButton}>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <MaterialIcons name='logout' size={30} color="#fff" />
             </TouchableOpacity>
           </View>

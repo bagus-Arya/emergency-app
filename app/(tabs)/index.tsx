@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   StyleSheet, 
   Alert, 
@@ -7,25 +7,16 @@ import {
   ActivityIndicator,
   View
 } from 'react-native';
-import { ThemedView } from '@/components/ThemedView';
 import { MaterialIcons } from '@expo/vector-icons'; 
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import MapView, { Marker } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 
 const { width, height } = Dimensions.get('window');
 
-export default function Home() {
-  const mapRef = useRef(null);
+const LeafletMap = () => {
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [region, setRegion] = useState({
-    latitude: -6.200000,  
-    longitude: 106.816666,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
 
   const sendData = () => {
     if (location) {
@@ -43,83 +34,90 @@ export default function Home() {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setErrorMsg('Permission to access location was denied');
+        setLoading(false);
+        Alert.alert("Permission", "Denied.", [
+          {
+            text: "OK",
+          },
+        ]);
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
-      
-      // Update region when location is obtained
-      setRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      });
+      let loc = await Location.getCurrentPositionAsync({});
+      setLocation(loc);
       setLoading(false);
     })();
   }, []);
 
+  // Create the HTML content dynamically based on the location
+  const htmlContent = location ? `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Leaflet Map</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+        <style>
+          #map {
+            width: 100%;
+            height: 100vh;
+          }
+        </style>
+      </head>
+      <body>
+        <div id="map"></div>
+        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+        <script>
+          var map = L.map('map').setView([${location.coords.latitude}, ${location.coords.longitude}], 13);
+
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          }).addTo(map);
+
+          var marker = L.marker([${location.coords.latitude}, ${location.coords.longitude}]).addTo(map)
+            .bindPopup('You are here!')
+            .openPopup();
+        </script>
+      </body>
+    </html>
+  ` : '';
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemedView style={styles.container}>
-        {loading ? (
-          <ThemedView style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0000ff" />
-          </ThemedView>
-        ) : (
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            showsUserLocation={false}
-            region={region}
-            onRegionChangeComplete={setRegion}
-          >
-            {location && (
-              <>
-                <Marker
-                  coordinate={{
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude
-                  }}
-                  title="Your Location"
-                  description="You are here"
-                  pinColor="#CD1C18"
-                />
-               
-              </>
-            )}
-          </MapView>
-        )}
-        {/* Floating Action Button */}
-        <TouchableOpacity 
-          style={styles.floatingButton} 
-          onPress={sendData}
-        >
-          <MaterialIcons name="warning" size={35} color="#fff" />
-        </TouchableOpacity>
-      </ThemedView>
-    </GestureHandlerRootView>
+    <View style={styles.container}>
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" style={styles.loadingIndicator} />
+      ) : (
+        <WebView
+          originWhitelist={['*']}
+          source={{ html: htmlContent }}
+          style={{ width, height: height - 80 }} // Adjust height to leave space for the button
+        />
+      )}
+      {/* Floating Action Button */}
+      <TouchableOpacity 
+        style={styles.floatingButton} 
+        onPress={sendData}
+      >
+        <MaterialIcons name="warning" size={35} color="#fff" />
+      </TouchableOpacity>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'column',
   },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center', 
-    alignItems: 'center', 
+  loadingIndicator: {
+    position: 'absolute',
+    top: height / 2 - 20,
+    left: width / 2 - 20,
   },
   floatingButton: {
     position: 'absolute',
     bottom: height * 0.05, 
-    right: width * 0.09, 
+    right: width * 0.05, 
     backgroundColor: '#ff0000',
     width: width * 0.18, 
     height: width * 0.18, 
@@ -129,3 +127,5 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 });
+
+export default LeafletMap;

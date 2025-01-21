@@ -9,13 +9,15 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.zentexe.NavilaTech"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/navilatech@1k.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.zentexe.NavilaTech"
     },
     "web": {
       "bundler": "metro",
@@ -36,6 +38,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ef15f769-969e-4ab5-b67e-e6e59a255a6d"
+      }
     }
   }
 }
