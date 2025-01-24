@@ -1,5 +1,5 @@
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
-import client from '@/services/baseUrl'; 
+import client from './baseUrl';
 
 export interface MachineData {
   lat: string; 
