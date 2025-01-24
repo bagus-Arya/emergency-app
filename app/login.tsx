@@ -46,8 +46,8 @@ export default function Login() {
         Alert.alert('Error', response.message || 'Invalid credentials');
       }
     } catch (error: any) {
-      console.error('Login error:', error); // Log the error for debugging
-      Alert.alert('Error', 'Unable to connect to server. Please try again.');
+      // console.error('Login error:', error); // Log the error for debugging
+      Alert.alert('Error', error.message);
     } finally {
       setIsLoading(false);
     }

@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     color: '#38b6ff',
   },
   kicker: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: 'bold',
   },
   body: {

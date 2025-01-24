@@ -10,6 +10,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons'; 
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { postUserSosData, UserSosRequest } from '@/services/apiUserSos'; 
 
 const { width, height } = Dimensions.get('window');
 
@@ -17,13 +19,32 @@ const LeafletMap = () => {
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null); // State for user name
 
-  const sendData = () => {
+  const sendData = async () => {
     if (location) {
       const lat = location.coords.latitude;
       const lng = location.coords.longitude;
-      console.log("Sending SOS with location:", lat +`, `+ lng);
-      Alert.alert("Success sending location:", lat +`, `+ lng);
+
+      try {
+        const userData = await AsyncStorage.getItem('userData');
+        if (!userData) {
+          Alert.alert('Error', 'User  data not found. Please log in again.');
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        const sosData: UserSosRequest = {
+          lat,
+          lng,
+          group_staff_fishermans_id: user.group_id, // Assuming group_id is part of user data
+        };
+
+        const response = await postUserSosData(sosData, user.id.toString()); // Ensure user.id is a string
+        Alert.alert('Success', response.message);
+      } catch (error) {
+        Alert.alert('Error', 'Unable to retrieve data');
+      }
     } else {
       console.log("Location not available");
     }
@@ -49,7 +70,18 @@ const LeafletMap = () => {
     })();
   }, []);
 
-  // Create the HTML content dynamically based on the location
+  useEffect(() => {
+    const loadUserName = async () => {
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setUserName(user.name); 
+      }
+    };
+
+    loadUserName();
+  }, []);
+
   const htmlContent = location ? `
     <!DOCTYPE html>
     <html>
@@ -76,7 +108,7 @@ const LeafletMap = () => {
           }).addTo(map);
 
           var marker = L.marker([${location.coords.latitude}, ${location.coords.longitude}]).addTo(map)
-            .bindPopup('You are here!')
+            .bindPopup('${userName ? userName : "You are here!"}')
             .openPopup();
         </script>
       </body>

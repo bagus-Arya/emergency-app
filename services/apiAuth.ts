@@ -6,9 +6,9 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  email_verified_at: string | null;
-  created_at: string | null;
-  updated_at: string | null;
+  role: string; 
+  group_id: number;
+  group_name: string; 
 }
 
 export interface LoginResponse {
@@ -29,15 +29,11 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     },
-    validateStatus: (status) => true
+    validateStatus: (status) => true // Accept all status codes
   };
 
   try {
-    // console.log('Attempting login with:', credentials.email);
-    
     const response: AxiosResponse<LoginResponse> = await client.post('/api/login', credentials, config);
-    // console.log('Login response status:', response.data.status);
-    // console.log('Raw response:', JSON.stringify(response, null, 2));
 
     if (!response.data.status) {
       throw new Error(response.data.message);
@@ -54,11 +50,10 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
     return response.data;
   } catch (err) {
     if (axios.isAxiosError(err)) {
-      const errorMessage = err.response?.data;
-      // console.log('Login error details:', err.response?.data);
+      const errorMessage = err.response?.data?.message || 'An error occurred during login.';
       throw new Error(errorMessage);
     }
-    throw err;
+    throw new Error('An unexpected error occurred.');
   }
 };
 
@@ -70,7 +65,6 @@ export const isLoggedIn = async (): Promise<boolean> => {
     ]);
     return !!(token && userData);
   } catch (error) {
-    // console.log('Login status check failed:', error);
     return false;
   }
 };

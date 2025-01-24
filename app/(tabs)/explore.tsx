@@ -4,50 +4,47 @@ import {
   View, 
   Image,
   Text,
-  Linking, 
   Alert, 
   Animated,
-  Dimensions,
   FlatList,
-  TouchableOpacity } from 'react-native';
+  Linking,
+  TouchableOpacity 
+} from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { MaterialIcons } from '@expo/vector-icons'; 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Location from 'expo-location';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { User, logout } from '@/services/apiAuth';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const { width, height } = Dimensions.get('window');
+import { getSosData } from '@/services/apiGetSos'; 
+import { getLatestData } from '@/services/apiMSos';
 
 export default function Home() {
-  interface ListItem {
-    id: string;
-    title: string;
-    description: string;
+  interface SosData {
+    lat: string;
+    lng: string;
+    group_staff_fishermans_id: number;
+    staff_nm: string;
   }
 
+  interface MachineData {
+    lat: string;
+    lng: string;
+    host_id: number;
+    machine_name: number; 
+  }
+
+  type CombinedData = (SosData & { type: 'sos' }) | (MachineData & { type: 'machine' });
+  
   const [loading, setLoading] = useState(true);
   const [user, setUser ] = useState<User | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [sosData, setSosData] = useState<SosData[]>([]); 
+  const [latestData, setLatestData] = useState<MachineData[]>([]);
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
-
-  const emergencyContacts: ListItem[] = [
-    { id: '1', title: 'Emergency Services', description: 'Call 112' },
-    { id: '2', title: 'Local Police', description: 'Call 110' },
-    { id: '3', title: 'Fire Department', description: 'Call 113' },
-    { id: '4', title: 'Ambulance', description: 'Call 118' },
-    { id: '5', title: 'Ambulance', description: 'Call 118' },
-    { id: '6', title: 'Ambulance', description: 'Call 118' },
-    { id: '7', title: 'Ambulance', description: 'Call 118' },
-    { id: '8', title: 'Ambulance', description: 'Call 118' },
-    { id: '9', title: 'Ambulance', description: 'Call 118' },
-    { id: '10', title: 'Ambulance', description: 'Call 118' },
-  ];
 
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 1],
@@ -61,21 +58,60 @@ export default function Home() {
   const backgroundColor = useThemeColor({}, 'background');
   
   useEffect(() => {
-    const loadUserData = async () => {
+    const loadUser  = async () => {
       try {
         const userData = await AsyncStorage.getItem('userData');
         if (userData) {
           setUser (JSON.parse(userData));
-        } else {
-          setLoading(false);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false); 
       }
     };
 
-    loadUserData();
+    loadUser ();
   }, []);
+
+  useEffect(() => {
+    const fetchSosData = async () => {
+      if (user) {
+        try {
+          const response = await getSosData(user.id.toString()); // Fetch SOS data using user ID
+          if (response.success) {
+            setSosData(response.data); 
+          } else {
+            Alert.alert('Error', response.message);
+          }
+        } catch (error) {
+          Alert.alert('Error', 'Unable to retrieve data');
+        }
+      }
+    };
+
+    fetchSosData();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchLatestData = async () => {
+      if (user) {
+        try {
+          const data = await getLatestData(); 
+          setLatestData(data); 
+        } catch (error) {
+          Alert.alert('Error', 'No data from machine');
+        }
+      }
+    };
+
+    fetchLatestData();
+  }, [user]);
+  
+  const combinedData: CombinedData[] = [
+    ...sosData.map(item => ({ ...item, type: 'sos' } as CombinedData)), 
+    ...latestData.map(item => ({ ...item, type: 'machine' } as CombinedData)), 
+  ];
 
   const handleLogout = async () => {
     try {
@@ -96,6 +132,54 @@ export default function Home() {
     }
   };
 
+  const openMaps = (lat: string, lng: string) => {
+    const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+    Linking.openURL(mapUrl).catch(err => console.error("An error occurred", err));
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ThemedText>Loading...</ThemedText>
+      </View>
+    );
+  }
+
+  const renderItem = ({ item }: { item: CombinedData }) => {
+    if (item.type === 'sos') {
+      return (
+        <TouchableOpacity onPress={() => openMaps(item.lat, item.lng)}>
+          <ThemedView 
+            style={backgroundColor === '#fff' ? styles.emergencyContLight : styles.emergencyCont}
+          >
+            <ThemedView 
+              style={backgroundColor === '#fff' ? styles.emergencyItemLight : styles.emergencyItem}
+            >
+              <ThemedText style={styles.emergencyTitle}>{item.staff_nm}</ThemedText>
+              <ThemedText style={styles.emergencyDescription}>Lat: {item.lat}, Lng: {item.lng}</ ThemedText>
+            </ThemedView>
+          </ThemedView>
+        </TouchableOpacity>
+      );
+    } else if (item.type === 'machine') {
+      return (
+        <TouchableOpacity onPress={() => openMaps(item.lat, item.lng)}>
+          <ThemedView 
+            style={backgroundColor === '#fff' ? styles.emergencyContLight : styles.emergencyCont}
+          >
+            <ThemedView 
+              style={backgroundColor === '#fff' ? styles.emergencyItemLight : styles.emergencyItem}
+            >
+              <ThemedText style={styles.emergencyTitle}>Machine: {item.machine_name}</ThemedText>
+              <ThemedText style={styles.emergencyDescription}>Lat: {item.lat}, Lng: {item.lng}</ThemedText>
+            </ThemedView>
+          </ThemedView>
+        </TouchableOpacity>
+      );
+    }
+    return null; // Fallback for unexpected item types
+  };
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemedView style={styles.container}>
@@ -106,105 +190,93 @@ export default function Home() {
             end={{ x: 1, y: 1 }}
             style={styles.gradient}
           >
-          <View style={styles.welcomeHeader}>
-            <View>
-              <ThemedText style={styles.headerText} type="subtitle">Hi, {user ? user.name : 'Guest'}</ThemedText>
-              <ThemedText style={styles.headerText} type="kicker">{user ? user.email : 'Please log in'}</ThemedText>
+            <View style={styles.welcomeHeader}>
+              <View>
+                <ThemedText style={styles.headerText} type="subtitle">Hi, {user ? user.name : 'Guest'}</ThemedText>
+                <ThemedText style={styles.headerText} type="kicker">Kelompok Nelayan {user ? user.group_name : 'Please log in'}</ThemedText>
+              </View>
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <MaterialIcons name='logout' size={30} color="#fff" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <MaterialIcons name='logout' size={30} color="#fff" />
-            </TouchableOpacity>
-          </View>
-              <View style={styles.weatherContainerRoot}>   
-                <LinearGradient
-                  colors={['#38b6ff', '#1E90FF']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.gradient}
-                >
+            <View style={styles.weatherContainerRoot}>   
+              <LinearGradient
+                colors={['#38b6ff', '#1E90FF']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradient}
+              >
                 <View style={styles.statusContainer}>
                   <View style={styles.statusIndicator} />
                   <Text style={styles.statusText}>Machine Active</Text>
                 </View>
-              <View style={styles.rowReload}>
-                <Text style={styles.condition}>
-                  20 des 2024
-                </Text> 
-                <TouchableOpacity>
-                  <Animated.View style={animatedStyle}>
-                    <MaterialIcons name='loop' size={20} color="#fff" />
-                  </Animated.View>
-                </TouchableOpacity>
-              </View>
-  
-              <View style={styles.weatherContainer}>  
-                {/* Weather Details */}
-                <View style={styles.weatherRow}>
-                  <View style={styles.weatherDetailContainer}>
-                    <Image 
-                      source={require('@/assets/icon/Raining.png')} 
-                      style={styles.iconSmall} 
-                      resizeMode="contain" 
-                    />
-                    <ThemedText style={styles.weatherText}>Hujan</ThemedText>
-                    <ThemedText style={styles.weatherDetail}>20 °C</ThemedText>
-                  </View>
-                  <View style={styles.weatherDetailContainer}>
-                    <Image 
-                      source={require('@/assets/icon/angin-icon.png')} 
-                      style={styles.iconSmall} 
-                      resizeMode="contain" 
-                    />
-                    <ThemedText style={styles.weatherText}>Kencang</ThemedText>
-                    <ThemedText style={styles.weatherDetail}>50 km/h</ThemedText>
-                  </View>
-                  <View style={styles.weatherDetailContainer}>
-                    <Image 
-                      source={require('@/assets/icon/kelembaban-icon.png')} 
-                      style={styles.iconSmall} 
-                      resizeMode="contain" 
-                    />
-                    <ThemedText style={styles.weatherText}>Lembab</ThemedText>
-                    <ThemedText style={styles.weatherDetail}>30 %</ThemedText>
-                  </View>
-                  <View style={styles.weatherDetailContainer}>
-                    <Image 
-                      source={require('@/assets/icon/tekananudara-icon.png')} 
-                      style={styles.iconSmall} 
-                      resizeMode="contain" 
-                    />
-                    <ThemedText style={styles.weatherText}>Sedang</ThemedText>
-                    <ThemedText style={styles.weatherDetail}>500 mBar</ThemedText>
-                  </View>
+                <View style={styles.rowReload}>
+                  <Text style={styles.condition}>
+                    25 januari 2025
+                  </Text> 
+                  <TouchableOpacity>
+                    <Animated.View style={animatedStyle}>
+                      <MaterialIcons name='loop' size={20} color="#fff" />
+                    </Animated.View>
+                  </TouchableOpacity>
                 </View>
+                <View style={styles.weatherContainer}>  
+                  {/* Weather Details */}
+                  <View style={styles.weatherRow}>
+                    <View style={styles.weatherDetailContainer}>
+                      <Image 
+                        source={require('@/assets/icon/Raining.png')} 
+                        style={styles.iconSmall} 
+                        resizeMode="contain" 
+                      />
+                      <ThemedText style={styles.weatherText}>Hujan</ThemedText>
+                      <ThemedText style={styles.weatherDetail}>20 °C</ThemedText>
+                    </View>
+                    <View style={styles.weatherDetailContainer}>
+                      <Image 
+                        source={require('@/assets/icon/angin-icon.png')} 
+                        style={styles.iconSmall} 
+                        resizeMode="contain" 
+                      />
+                      <ThemedText style={styles.weatherText}>Kencang</ThemedText>
+                      <ThemedText style={styles.weatherDetail}>50 km/h</ThemedText>
+                    </View>
+                    <View style={styles.weatherDetailContainer}>
+                      <Image 
+                        source={require('@/assets/icon/kelembaban-icon.png')} 
+                        style={styles.iconSmall} 
+                        resizeMode="contain" 
+                      />
+                      <ThemedText style={styles.weatherText}>Lembab</ThemedText>
+                      <ThemedText style={styles.weatherDetail}>30 %</ThemedText>
+                    </View>
+                    <View style={styles.weatherDetailContainer}>
+                      <Image 
+                        source={require('@/assets/icon/tekananudara-icon.png')} 
+                        style={styles.iconSmall} 
+                        resizeMode="contain" 
+                      />
+                      <ThemedText style={styles.weatherText}>Sedang</ThemedText>
+                      <ThemedText style={styles.weatherDetail}>500 mBar</ThemedText>
+                    </View>
+                  </View>
                 </View>
               </LinearGradient>
             </View>
           </LinearGradient>
         </ThemedView>
 
-        <ThemedView style={styles.sosContainer}>
-          <ThemedText type='subtitle'>DARURAT</ThemedText>
-          <FlatList
-            data={emergencyContacts}
-            keyExtractor={item => item.id}
-            renderItem={({ item }) => (
-              <ThemedView 
-              style={backgroundColor === '#fff' ? styles.emergencyContLight : styles.emergencyCont}
-              >
-                <ThemedView 
-                style={backgroundColor === '#fff' ? styles.emergencyItemLight : styles.emergencyItem}
-                >
-                  <ThemedText style={styles.emergencyTitle}>{item.title}</ThemedText>
-                  <ThemedText style={styles.emergencyDescription}>{item.description}</ThemedText>
-                </ThemedView>
-              </ThemedView>
-            )}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.emergencyList}
-          />
-        </ThemedView>
+          <ThemedView style={styles.sosContainer}>
+            <ThemedText type='subtitle'>DARURAT</ThemedText>
 
+            <FlatList
+              data={combinedData}
+              keyExtractor={(item, index) => item.type === 'sos' ? item.group_staff_fishermans_id.toString() : `${item.host_id}-${index}`}
+              renderItem={renderItem}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.emergencyList}
+            />
+          </ThemedView>
       </ThemedView>
     </GestureHandlerRootView>
   );
@@ -214,6 +286,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'column',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusContainer: {
     flexDirection: 'row',
@@ -306,14 +383,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   emergencyItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 166, 166, 0.3)',
     borderRadius: 15,
     padding: 15,
     marginVertical: 8,
     width: '100%',
   },
   emergencyItemLight: {
-    backgroundColor: 'rgba(0, 119, 255, 0.15)',
+    backgroundColor: 'rgba(255, 0, 0, 0.46)',
     borderRadius: 15,
     padding: 15,
     width: '100%',
