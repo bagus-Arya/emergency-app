@@ -1,6 +1,5 @@
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import client from './baseUrl';
 
 export interface User {
   id: number;
@@ -31,7 +30,9 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
     },
     validateStatus: (status) => true // Accept all status codes
   };
-
+  const client = axios.create({
+    baseURL: 'http://103.171.85.186'
+  });
   try {
     const response: AxiosResponse<LoginResponse> = await client.post('/api/login', credentials, config);
 
@@ -74,5 +75,8 @@ export const logout = async (): Promise<void> => {
     AsyncStorage.removeItem('token'),
     AsyncStorage.removeItem('userData')
   ]);
+  const client = axios.create({
+    baseURL: 'http://103.171.85.186'
+  });
   delete client.defaults.headers.common['Authorization'];
 };

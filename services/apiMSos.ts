@@ -1,5 +1,5 @@
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
-import client from './baseUrl';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface MachineData {
   lat: string; 
@@ -22,13 +22,24 @@ export const getLatestData = async (): Promise<MachineData[]> => {
     },
     validateStatus: (status) => true, 
   };
-
+  const client = axios.create({
+    baseURL: 'http://103.171.85.186'
+  });
   try {
-    const response: AxiosResponse<GetLatestDataResponse> = await client.get('/api/sos/show/Iaisjoiwoe8ojdkiaposudcjqwAIo0wj', config); 
-
-    if (!response.data.success) {
-      throw new Error(response.data.message);
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      throw new Error('User  is not authenticated');
     }
+    
+    const url = `/api/sos/show/Iaisjoiwoe8ojdkiaposudcjqwAIo0wj`;
+
+    const response: AxiosResponse<GetLatestDataResponse> = await client.get(url, {
+        ...config,
+        headers: {
+        ...config.headers,
+        'Authorization': `Bearer ${token}`, 
+        },
+    });
 
     return response.data.data.slice(0, 5);
   } catch (err) {

@@ -1,5 +1,4 @@
-import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
-import client from './baseUrl';
+import axios, { AxiosResponse, AxiosRequestConfig } from 'axios'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface SosData {
@@ -23,6 +22,9 @@ export const getSosData = async (sosId: string): Promise<GetSosResponse> => {
     },
     validateStatus: (status) => true, // Accept all status codes
   };
+  const client = axios.create({
+    baseURL: 'http://103.171.85.186'
+  });
 
   try {
     const token = await AsyncStorage.getItem('token');

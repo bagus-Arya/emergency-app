@@ -8,6 +8,7 @@ import {
   Animated,
   FlatList,
   Linking,
+  ScrollView,
   TouchableOpacity 
 } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
@@ -37,8 +38,6 @@ export default function Home() {
     machine_name: number; 
   }
 
-  type CombinedData = (SosData & { type: 'sos' }) | (MachineData & { type: 'machine' });
-  
   const [loading, setLoading] = useState(true);
   const [user, setUser ] = useState<User | null>(null);
   const [sosData, setSosData] = useState<SosData[]>([]); 
@@ -107,11 +106,6 @@ export default function Home() {
 
     fetchLatestData();
   }, [user]);
-  
-  const combinedData: CombinedData[] = [
-    ...sosData.map(item => ({ ...item, type: 'sos' } as CombinedData)), 
-    ...latestData.map(item => ({ ...item, type: 'machine' } as CombinedData)), 
-  ];
 
   const handleLogout = async () => {
     try {
@@ -137,6 +131,36 @@ export default function Home() {
     Linking.openURL(mapUrl).catch(err => console.error("An error occurred", err));
   };
 
+  const renderItemSos = ({ item }: { item: SosData }) => (
+    <TouchableOpacity onPress={() => openMaps(item.lat, item.lng)}>
+      <ThemedView 
+        style={backgroundColor === '#fff' ? styles.emergencyContLight : styles.emergencyCont}
+      >
+        <ThemedView 
+          style={backgroundColor === '#fff' ? styles.emergencyItemLight : styles.emergencyItem}
+        >
+          <ThemedText style={styles.emergencyTitle}>{item.staff_nm}</ThemedText>
+          <ThemedText style={styles.emergencyDescription}>Lat: {item.lat}, Lng: {item.lng}</ThemedText>
+        </ThemedView>
+      </ThemedView>
+    </TouchableOpacity>
+  );
+  
+  const renderItemMachine = ({ item }: { item: MachineData }) => (
+    <TouchableOpacity onPress={() => openMaps(item.lat, item.lng)}>
+      <ThemedView 
+        style={backgroundColor === '#fff' ? styles.emergencyContLight : styles.emergencyCont}
+      >
+        <ThemedView 
+          style={backgroundColor === '#fff' ? styles.emergencyItemLight : styles.emergencyItem}
+        >
+          <ThemedText style={styles.emergencyTitle}>Machine: {item.machine_name}</ThemedText>
+          <ThemedText style={styles.emergencyDescription}>Lat: {item.lat}, Lng: {item.lng}</ThemedText>
+        </ThemedView>
+      </ThemedView>
+    </TouchableOpacity>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -144,41 +168,6 @@ export default function Home() {
       </View>
     );
   }
-
-  const renderItem = ({ item }: { item: CombinedData }) => {
-    if (item.type === 'sos') {
-      return (
-        <TouchableOpacity onPress={() => openMaps(item.lat, item.lng)}>
-          <ThemedView 
-            style={backgroundColor === '#fff' ? styles.emergencyContLight : styles.emergencyCont}
-          >
-            <ThemedView 
-              style={backgroundColor === '#fff' ? styles.emergencyItemLight : styles.emergencyItem}
-            >
-              <ThemedText style={styles.emergencyTitle}>{item.staff_nm}</ThemedText>
-              <ThemedText style={styles.emergencyDescription}>Lat: {item.lat}, Lng: {item.lng}</ ThemedText>
-            </ThemedView>
-          </ThemedView>
-        </TouchableOpacity>
-      );
-    } else if (item.type === 'machine') {
-      return (
-        <TouchableOpacity onPress={() => openMaps(item.lat, item.lng)}>
-          <ThemedView 
-            style={backgroundColor === '#fff' ? styles.emergencyContLight : styles.emergencyCont}
-          >
-            <ThemedView 
-              style={backgroundColor === '#fff' ? styles.emergencyItemLight : styles.emergencyItem}
-            >
-              <ThemedText style={styles.emergencyTitle}>Machine: {item.machine_name}</ThemedText>
-              <ThemedText style={styles.emergencyDescription}>Lat: {item.lat}, Lng: {item.lng}</ThemedText>
-            </ThemedView>
-          </ThemedView>
-        </TouchableOpacity>
-      );
-    }
-    return null; // Fallback for unexpected item types
-  };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -266,17 +255,31 @@ export default function Home() {
           </LinearGradient>
         </ThemedView>
 
-          <ThemedView style={styles.sosContainer}>
+        <ThemedView style={styles.sosContainer}>
+          <ScrollView showsVerticalScrollIndicator={false}>
             <ThemedText type='subtitle'>DARURAT</ThemedText>
 
             <FlatList
-              data={combinedData}
-              keyExtractor={(item, index) => item.type === 'sos' ? item.group_staff_fishermans_id.toString() : `${item.host_id}-${index}`}
-              renderItem={renderItem}
+              data={sosData} 
+              keyExtractor={(item, index) => `${item.group_staff_fishermans_id}-${index}`}
+              renderItem={renderItemSos} 
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.emergencyList}
+              scrollEnabled={false}
             />
-          </ThemedView>
+
+            <ThemedText type='subtitle'>MACHINE DATA</ThemedText>
+
+            <FlatList
+              data={latestData} 
+              keyExtractor={(item, index) => `${item.host_id}-${index}`}
+              renderItem={renderItemMachine} 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.emergencyList}
+              scrollEnabled={false}
+            />
+          </ScrollView>
+        </ThemedView>
       </ThemedView>
     </GestureHandlerRootView>
   );
