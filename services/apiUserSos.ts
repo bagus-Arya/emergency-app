@@ -1,6 +1,7 @@
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+// import { BASE_URL } from './apiConfig';
+const BASE_URL = 'http://103.171.85.186';
 export interface UserSosRequest {
   lat: number;
   lng: number;
@@ -21,7 +22,7 @@ export const postUserSosData = async (data: UserSosRequest, userId: string): Pro
   };
   
   const client = axios.create({
-    baseURL: 'http://103.171.85.186'
+    baseURL: BASE_URL,
   });
 
   try {

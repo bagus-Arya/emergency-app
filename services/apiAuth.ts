@@ -1,6 +1,7 @@
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+// import { BASE_URL } from './apiConfig';
+const BASE_URL = 'http://103.171.85.186';
 export interface User {
   id: number;
   name: string;
@@ -30,9 +31,11 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
     },
     validateStatus: (status) => true // Accept all status codes
   };
+  
   const client = axios.create({
-    baseURL: 'http://103.171.85.186'
+    baseURL: BASE_URL,
   });
+
   try {
     const response: AxiosResponse<LoginResponse> = await client.post('/api/login', credentials, config);
 

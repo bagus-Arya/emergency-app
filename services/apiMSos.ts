@@ -1,6 +1,7 @@
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+// import { BASE_URL } from './apiConfig';
+const BASE_URL = 'http://103.171.85.186';
 export interface MachineData {
   lat: string; 
   lng: string; 
@@ -23,7 +24,7 @@ export const getLatestData = async (): Promise<MachineData[]> => {
     validateStatus: (status) => true, 
   };
   const client = axios.create({
-    baseURL: 'http://103.171.85.186'
+    baseURL: BASE_URL,
   });
   try {
     const token = await AsyncStorage.getItem('token');

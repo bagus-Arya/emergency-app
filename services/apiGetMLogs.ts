@@ -2,26 +2,31 @@ import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // import { BASE_URL } from './apiConfig';
 const BASE_URL = 'http://103.171.85.186';
-export interface SosData {
-  lat: string; 
+export interface MachineData {
+  id: number;
+  host_id: number;
+  lat: string;
   lng: string;
-  group_staff_fishermans_id: number;
-  staff_nm: string;
+  temp: number;
+  humidity: number;
+  pressure: number;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface GetSosResponse {
-  success: boolean;
-  message: string;
-  data: SosData[];
+export interface GetMachinesResponse {
+  status: string;
+  data: MachineData[];
 }
 
-export const getSosData = async (sosId: string): Promise<GetSosResponse> => {
+export const getMachinesData = async (): Promise<GetMachinesResponse> => {
   const config: AxiosRequestConfig = {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
-    validateStatus: (status) => true, // Accept all status codes
+    validateStatus: (status) => true, 
   };
 
   const client = axios.create({
@@ -34,9 +39,9 @@ export const getSosData = async (sosId: string): Promise<GetSosResponse> => {
       throw new Error('User  is not authenticated');
     }
 
-    const url = `/api/sos/show/UI8iqknk28HJsdplkmaj2xcIfsjasi`;
+    const url = `/api/get/machines/kaoicKJilKDiaqwoMCMwonxqKXoiqwqxigyrtBHG`; 
 
-    const response: AxiosResponse<GetSosResponse> = await client.get(url, {
+    const response: AxiosResponse<GetMachinesResponse> = await client.get(url, {
       ...config,
       headers: {
         ...config.headers,
@@ -48,10 +53,15 @@ export const getSosData = async (sosId: string): Promise<GetSosResponse> => {
       throw new Error('No data received from the server');
     }
 
+    // Validate response structure
+    if (response.data.status !== 'true') {
+      throw new Error('Failed to fetch machine data.');
+    }
+
     return response.data;
   } catch (err) {
     if (axios.isAxiosError(err)) {
-      const errorMessage = err.response?.data?.message || 'An error occurred while fetching SOS data.';
+      const errorMessage = err.response?.data?.message || 'An error occurred while fetching machine data.';
       throw new Error(errorMessage);
     }
     throw new Error('An unexpected error occurred.');

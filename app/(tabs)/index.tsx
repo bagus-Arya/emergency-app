@@ -11,6 +11,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getMachinesData, MachineData } from '@/services/apiGetMLogs'; 
 import { postUserSosData, UserSosRequest } from '@/services/apiUserSos'; 
 
 const { width, height } = Dimensions.get('window');
@@ -19,7 +20,8 @@ const LeafletMap = () => {
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null); // State for user name
+  const [userName, setUserName] = useState<string | null>(null); 
+  const [machines, setMachines] = useState<MachineData[]>([]);
 
   const sendData = async () => {
     if (location) {
@@ -37,10 +39,10 @@ const LeafletMap = () => {
         const sosData: UserSosRequest = {
           lat,
           lng,
-          group_staff_fishermans_id: user.group_id, // Assuming group_id is part of user data
+          group_staff_fishermans_id: user.group_id, 
         };
 
-        const response = await postUserSosData(sosData, user.id.toString()); // Ensure user.id is a string
+        const response = await postUserSosData(sosData, user.id.toString());
         Alert.alert('Success', response.message);
       } catch (error) {
         Alert.alert('Error', 'Unable to retrieve data');
@@ -82,6 +84,21 @@ const LeafletMap = () => {
     loadUserName();
   }, []);
 
+  useEffect(() => {
+    const fetchMachinesData = async () => {
+      try {
+        const response = await getMachinesData();
+        setMachines(response.data);
+      } catch (error : any) {
+        Alert.alert('Error', error.message);
+      }
+    };
+
+    fetchMachinesData();
+  }, []);
+
+  const colors = ['#FF5733', '#33FF57', '#3357FF', '#F1C40F', '#8E44AD', '#E74C3C', '#3498DB']; 
+
   const htmlContent = location ? `
     <!DOCTYPE html>
     <html>
@@ -102,7 +119,7 @@ const LeafletMap = () => {
         <script>
           var map = L.map('map').setView([${location.coords.latitude}, ${location.coords.longitude}], 13);
 
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          L.tileLayer(' https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           }).addTo(map);
@@ -110,6 +127,20 @@ const LeafletMap = () => {
           var marker = L.marker([${location.coords.latitude}, ${location.coords.longitude}]).addTo(map)
             .bindPopup('${userName ? userName : "You are here!"}')
             .openPopup();
+
+          const machines = ${JSON.stringify(machines)};
+          const colors = ${JSON.stringify(colors)};
+          machines.forEach((machine, index) => {
+            const color = colors[index % colors.length]; 
+            const machineMarker = L.marker([machine.lat, machine.lng], {
+              radius: 8,
+              fillColor: color,
+              color: color,
+              fillOpacity: 1,
+              stroke: false
+            }).addTo(map)
+              .bindPopup('Machine ID: ' + machine.id);
+          });
         </script>
       </body>
     </html>
@@ -140,23 +171,20 @@ const LeafletMap = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingIndicator: {
     position: 'absolute',
-    top: height / 2 - 20,
-    left: width / 2 - 20,
+    top: '50%',
   },
   floatingButton: {
     position: 'absolute',
-    bottom: height * 0.05, 
-    right: width * 0.05, 
-    backgroundColor: '#ff0000',
-    width: width * 0.18, 
-    height: width * 0.18, 
-    borderRadius: (width * 0.18) / 2, 
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
+    bottom: 30,
+    right: 30,
+    backgroundColor: '#ff5722',
+    borderRadius: 50,
+    padding: 15,
   },
 });
 
