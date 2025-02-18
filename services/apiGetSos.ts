@@ -1,7 +1,7 @@
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// import { BASE_URL } from './apiConfig';
-const BASE_URL = 'http://103.171.85.186';
+import { BASE_URL } from './apiConfig';
+// const BASE_URL = 'http://103.171.85.186';
 export interface SosData {
   lat: string; 
   lng: string;
@@ -21,7 +21,7 @@ export const getSosData = async (sosId: string): Promise<GetSosResponse> => {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
-    validateStatus: (status) => true, // Accept all status codes
+    validateStatus: (status) => true,
   };
 
   const client = axios.create({

@@ -38,4 +38,4 @@ yarn-error.*
 app-example
 
 # baseUrl
-services/apiConfig.ts
+# services/apiConfig.ts

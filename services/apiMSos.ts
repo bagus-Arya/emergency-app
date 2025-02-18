@@ -1,7 +1,7 @@
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// import { BASE_URL } from './apiConfig';
-const BASE_URL = 'http://103.171.85.186';
+import { BASE_URL } from './apiConfig';
+// const BASE_URL = 'http://103.171.85.186';
 export interface MachineData {
   lat: string; 
   lng: string; 

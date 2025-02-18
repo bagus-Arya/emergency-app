@@ -22,6 +22,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSosData } from '@/services/apiGetSos'; 
 import { getLatestData } from '@/services/apiMSos';
+import { fetchWeatherData, WeatherResponse } from '@/services/apiWeather'; 
 
 export default function Home() {
   interface SosData {
@@ -39,11 +40,13 @@ export default function Home() {
   }
 
   const [loading, setLoading] = useState(true);
-  const [user, setUser ] = useState<User | null>(null);
+  const [user, setUser  ] = useState<User | null>(null);
   const [sosData, setSosData] = useState<SosData[]>([]); 
   const [latestData, setLatestData] = useState<MachineData[]>([]);
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
+  const [currentDate, setCurrentDate] = useState<string>('');
+  const [weather, setWeather] = useState<WeatherResponse | null>(null);
 
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 1],
@@ -57,11 +60,11 @@ export default function Home() {
   const backgroundColor = useThemeColor({}, 'background');
   
   useEffect(() => {
-    const loadUser  = async () => {
+    const loadUser   = async () => {
       try {
         const userData = await AsyncStorage.getItem('userData');
         if (userData) {
-          setUser (JSON.parse(userData));
+          setUser  (JSON.parse(userData));
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -70,21 +73,39 @@ export default function Home() {
       }
     };
 
-    loadUser ();
+    loadUser  ();
+  }, []);
+
+  const getWeather = async () => {
+    try {
+      const apiKey = '9fbcb7a3cb48a76ea062e8ca99b1b0e5'; 
+      const data = await fetchWeatherData(-8.4343265, 115.6835497, apiKey);
+      setWeather(data);
+    } catch (error) {
+      Alert.alert('Error', 'Unable to retrieve weather data');
+    }
+  };
+
+  useEffect(() => {
+    getWeather(); 
+
+    const date = new Date();
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    setCurrentDate(date.toLocaleDateString('id-ID', options)); 
   }, []);
 
   useEffect(() => {
     const fetchSosData = async () => {
       if (user) {
         try {
-          const response = await getSosData(user.id.toString()); // Fetch SOS data using user ID
+          const response = await getSosData(user.id.toString()); 
           if (response.success) {
             setSosData(response.data); 
           } else {
             Alert.alert('Error', response.message);
           }
-        } catch (error) {
-          Alert.alert('Error', 'Unable to retrieve data');
+        } catch ( error) {
+          Alert.alert('Error', 'Unable to retrieve SOS data');
         }
       }
     };
@@ -188,6 +209,7 @@ export default function Home() {
                 <MaterialIcons name='logout' size={30} color="#fff" />
               </TouchableOpacity>
             </View>
+            {weather ? (
             <View style={styles.weatherContainerRoot}>   
               <LinearGradient
                 colors={['#38b6ff', '#1E90FF']}
@@ -197,11 +219,11 @@ export default function Home() {
               >
                 <View style={styles.statusContainer}>
                   <View style={styles.statusIndicator} />
-                  <Text style={styles.statusText}>Machine Active</Text>
+                  <Text style={styles.statusText}>Kondisi Cuaca : {weather.weather[0].main}</Text>
                 </View>
                 <View style={styles.rowReload}>
                   <Text style={styles.condition}>
-                    25 januari 2025
+                  {currentDate}
                   </Text> 
                   <TouchableOpacity>
                     <Animated.View style={animatedStyle}>
@@ -209,8 +231,9 @@ export default function Home() {
                     </Animated.View>
                   </TouchableOpacity>
                 </View>
-                <View style={styles.weatherContainer}>  
+                < View style={styles.weatherContainer}>  
                   {/* Weather Details */}
+                  
                   <View style={styles.weatherRow}>
                     <View style={styles.weatherDetailContainer}>
                       <Image 
@@ -218,8 +241,8 @@ export default function Home() {
                         style={styles.iconSmall} 
                         resizeMode="contain" 
                       />
-                      <ThemedText style={styles.weatherText}>Hujan</ThemedText>
-                      <ThemedText style={styles.weatherDetail}>20 °C</ThemedText>
+                      <ThemedText style={styles.weatherText}>Suhu</ThemedText>
+                      <ThemedText style={styles.weatherDetail}>{weather.main.temp} °C</ThemedText>
                     </View>
                     <View style={styles.weatherDetailContainer}>
                       <Image 
@@ -227,8 +250,8 @@ export default function Home() {
                         style={styles.iconSmall} 
                         resizeMode="contain" 
                       />
-                      <ThemedText style={styles.weatherText}>Kencang</ThemedText>
-                      <ThemedText style={styles.weatherDetail}>50 km/h</ThemedText>
+                      <ThemedText style={styles.weatherText}>Angin</ThemedText>
+                      <ThemedText style={styles.weatherDetail}>{weather.wind.speed} km/h</ThemedText>
                     </View>
                     <View style={styles.weatherDetailContainer}>
                       <Image 
@@ -236,8 +259,8 @@ export default function Home() {
                         style={styles.iconSmall} 
                         resizeMode="contain" 
                       />
-                      <ThemedText style={styles.weatherText}>Lembab</ThemedText>
-                      <ThemedText style={styles.weatherDetail}>30 %</ThemedText>
+                      <ThemedText style={styles.weatherText}>Kelembaban</ThemedText>
+                      <ThemedText style={styles.weatherDetail}>{weather.main.humidity} %</ThemedText>
                     </View>
                     <View style={styles.weatherDetailContainer}>
                       <Image 
@@ -245,13 +268,16 @@ export default function Home() {
                         style={styles.iconSmall} 
                         resizeMode="contain" 
                       />
-                      <ThemedText style={styles.weatherText}>Sedang</ThemedText>
-                      <ThemedText style={styles.weatherDetail}>500 mBar</ThemedText>
+                      <ThemedText style={styles.weatherText}>Tekanan Udara</ThemedText>
+                      <ThemedText style={styles.weatherDetail}>{weather.main.pressure} mBar</ThemedText>
                     </View>
                   </View>
                 </View>
               </LinearGradient>
             </View>
+            ) : (
+              <Text style={styles.weatherText}>Loading weather data...</Text>
+            )}
           </LinearGradient>
         </ThemedView>
 
